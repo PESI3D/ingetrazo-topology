@@ -31,6 +31,7 @@ Im Ordner [`examples/`](examples) liegen vier Szenen, alle ab Nullpunkt (0, 0, 0
 `contours.igz` · `contours_flat.igz` (Altitude Editor) · `contours_messy.igz` (Clean up lines) · `point_cloud.igz`.
 
 ## Änderungen
+- **1.1** — eigene Werkzeugleiste **Topology** mit einem Icon je Befehl (Terrain from Contours… · Terrain from Points… · Edit Terrain…). Sie erscheint in einer eigenen Zeile unter den eingebauten Leisten und lässt sich wie diese verschieben, abdocken oder ausblenden (Rechtsklick auf eine Leiste). Icons im Stil von IngeTrazo, passend zum hellen/dunklen Theme.
 - **1.0** — erste Veröffentlichung.
 
 ## Lizenz

@@ -31,6 +31,7 @@ The [`examples/`](examples) folder has four scenes, all starting at the origin (
 `contours.igz` · `contours_flat.igz` (Altitude Editor) · `contours_messy.igz` (Clean up lines) · `point_cloud.igz`.
 
 ## Changelog
+- **1.1** — own toolbar **Topology** with one icon per command (Terrain from Contours… · Terrain from Points… · Edit Terrain…). It starts on a row of its own under the built-in toolbars; move, float or hide it like those (right-click on a toolbar). Icons drawn in IngeTrazo's own style, they follow the light/dark theme.
 - **1.0** — first release.
 
 ## Licence

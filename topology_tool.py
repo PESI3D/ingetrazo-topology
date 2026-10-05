@@ -33,7 +33,7 @@ import time
 KEY = "topology_tool"
 LEGACY_KEYS = ("terrain_tool", "topoform")   # terrains made before the renames
 TITLE = "Topology"
-VERSION = "1.0"
+VERSION = "1.1"
 SETTINGS_KEY = "plugins/topology_tool/params"
 LEGACY_SETTINGS_KEY = "plugins/topoform/params"
 MAX_CELLS_SIDE = 2000          # finer grids bring no detail, only memory
@@ -2779,6 +2779,244 @@ def show_edit(viewport, parent=None):
         data["label"] = "stored with the terrain"
     _dialog(viewport, data, g, parent)
 
+# ---------------------------------------------------------------------------
+# Toolbar (PESI3D): icons drawn in IngeTrazo's own icon style
+# ---------------------------------------------------------------------------
+
+def _pesi3d_icons():
+    """Icon key → draw(painter, ink, accent) on a 48 px canvas."""
+    import math  # noqa: F401
+    from PySide6.QtCore import QPointF, QRectF, Qt  # noqa: F401
+    from PySide6.QtGui import (QBrush, QColor, QPainterPath, QPen,  # noqa: F401
+                               QPolygonF)
+
+    def _a(c, alpha):
+        return QColor(c.red(), c.green(), c.blue(), alpha)
+
+    def _dot(p, acc, x, y, r=3.2, color=None):
+        p.save()
+        p.setPen(Qt.NoPen)
+        p.setBrush(color or acc)
+        p.drawEllipse(QPointF(x, y), r, r)
+        p.restore()
+
+    def _poly(pts):
+        return QPolygonF([QPointF(x, y) for x, y in pts])
+
+    def _thin(p, ink, alpha=120, width=1.8, dashed=False):
+        pen = QPen(_a(ink, alpha), width, Qt.DashLine if dashed else Qt.SolidLine)
+        pen.setCapStyle(Qt.RoundCap)
+        pen.setJoinStyle(Qt.RoundJoin)
+        p.setPen(pen)
+
+    def _pencil(p, ink, acc):
+        """Small pencil in the lower right corner = «Edit …»."""
+        p.save()
+        p.translate(35.5, 34.5)
+        p.rotate(45)
+        pen = QPen(ink, 2.2)
+        pen.setJoinStyle(Qt.RoundJoin)
+        p.setPen(pen)
+        p.setBrush(acc)
+        p.drawRect(QRectF(-3.6, -11.0, 7.2, 13.0))
+        p.setBrush(QBrush(ink))
+        p.drawPolygon(_poly([(-3.6, 2.0), (3.6, 2.0), (0.0, 8.0)]))
+        p.restore()
+
+    def _blob(cx, cy, rx, ry, wob):
+        path = QPainterPath()
+        import math
+        n = 48
+        for i in range(n + 1):
+            t = 2 * math.pi * i / n
+            r = 1 + wob * math.sin(3 * t + 0.6) + wob * 0.6 * math.cos(2 * t)
+            x, y = cx + rx * r * math.cos(t), cy + ry * r * math.sin(t)
+            if i == 0:
+                path.moveTo(x, y)
+            else:
+                path.lineTo(x, y)
+        path.closeSubpath()
+        return path
+
+    def topo_contours(p, ink, acc):
+        p.setBrush(Qt.NoBrush)
+        p.drawPath(_blob(24, 25, 17, 14, 0.07))
+        p.drawPath(_blob(25, 24, 10.5, 8.5, 0.09))
+        p.save()
+        p.setBrush(_a(acc, 200))
+        p.setPen(Qt.NoPen)
+        p.drawPath(_blob(26, 23, 4.5, 3.6, 0.1))
+        p.restore()
+
+    def topo_points(p, ink, acc):
+        pts = [(9, 34), (18, 22), (26, 36), (31, 16), (39, 30), (24, 27)]
+        tris = [(0, 1, 5), (0, 5, 2), (1, 3, 5), (3, 4, 5), (5, 4, 2)]
+        p.save()
+        _thin(p, ink, 150, 1.8)
+        p.setBrush(_a(acc, 70))
+        for a, b, c in tris:
+            p.drawPolygon(_poly([pts[a], pts[b], pts[c]]))
+        p.restore()
+        for x, y in pts:
+            _dot(p, acc, x, y, 3.6)
+
+    def _hill(p, ink, acc):
+        path = QPainterPath()
+        path.moveTo(6, 34)
+        path.cubicTo(12, 32, 14, 16, 21, 15)
+        path.cubicTo(27, 14, 28, 25, 33, 24)
+        path.cubicTo(36, 23.5, 38, 20, 42, 21)
+        fill = QPainterPath(path)
+        fill.lineTo(42, 34)
+        fill.closeSubpath()
+        p.save()
+        p.setPen(Qt.NoPen)
+        p.setBrush(_a(acc, 120))
+        p.drawPath(fill)
+        p.restore()
+        p.setBrush(Qt.NoBrush)
+        p.drawPath(path)
+        p.drawLine(QPointF(6, 37), QPointF(42, 37))
+
+    def topo_edit(p, ink, acc):
+        p.save()
+        p.translate(-2, -3)
+        _hill(p, ink, acc)
+        p.restore()
+        _pencil(p, ink, acc)
+
+    return {"contours": topo_contours, "points": topo_points, "edit": topo_edit}
+
+
+def _pesi3d_toolbar(app, title, entries):
+    """A toolbar of this plugin's own — one icon per command (PESI3D).
+
+    ``entries`` = (icon key, text, tip, callable). The icons are drawn
+    like IngeTrazo's own (views/icons.py: 48 px, ink = the palette's text
+    colour, 3 px pen, the orange accent) and redrawn when the theme flips.
+    The toolbar moves, floats and hides like the built-in ones (right-click
+    on any toolbar); its place is kept by its objectName."""
+    try:
+        from PySide6.QtCore import QEvent, QObject, QSize, Qt
+        from PySide6.QtGui import QAction, QColor, QIcon, QPainter, QPen, QPixmap
+        from PySide6.QtWidgets import QApplication, QToolBar
+    except Exception:  # noqa: BLE001 — no Qt, no toolbar
+        return None
+    win = getattr(app, "window", None)
+    if win is None:
+        return None
+    draws = _pesi3d_icons()
+
+    def make_icon(key):
+        draw = draws.get(key)
+        if draw is None:
+            return QIcon()
+        qa = QApplication.instance()
+        ink = (QColor(qa.palette().windowText().color()) if qa is not None
+               else QColor(40, 44, 52))
+        pm = QPixmap(48, 48)
+        pm.fill(Qt.transparent)
+        p = QPainter(pm)
+        p.setRenderHint(QPainter.Antialiasing, True)
+        pen = QPen(ink, 3.0)
+        pen.setJoinStyle(Qt.RoundJoin)
+        pen.setCapStyle(Qt.RoundCap)
+        p.setPen(pen)
+        try:
+            draw(p, ink, QColor(243, 115, 41))
+        finally:
+            p.end()
+        return QIcon(pm)
+
+    name = f"pesi3d_{getattr(app, 'key', title)}"
+    tb = None
+    make = getattr(win, "_new_toolbar", None)     # the host's own builder
+    if callable(make):
+        try:
+            tb = make(title, name)
+        except Exception:  # noqa: BLE001
+            tb = None
+    if tb is None:
+        tb = QToolBar(title, win)
+        tb.setObjectName(name)
+        tb.setMovable(True)
+        tb.setFloatable(True)
+        try:
+            from views.icons import toolbar_icon_px
+            px = int(toolbar_icon_px())
+        except Exception:  # noqa: BLE001
+            px = 24
+        tb.setIconSize(QSize(px, px))
+        tb.setToolButtonStyle(Qt.ToolButtonIconOnly)
+        win.addToolBar(Qt.TopToolBarArea, tb)
+
+    actions = []
+    for key, text, tip, fn in entries:
+        act = QAction(make_icon(key), text, tb)
+        act.setToolTip(f"{text}\n{tip}" if tip else text)
+        if tip:
+            act.setStatusTip(tip)
+        act.triggered.connect(lambda _c=False, f=fn: f())
+        tb.addAction(act)
+        actions.append((act, key))
+
+    class _ThemeWatch(QObject):
+        def eventFilter(self, obj, event):  # noqa: N802 — Qt override
+            if event.type() in (QEvent.PaletteChange,
+                                QEvent.ApplicationPaletteChange,
+                                QEvent.StyleChange):
+                for a, k in actions:
+                    a.setIcon(make_icon(k))
+            return False
+
+    watch = _ThemeWatch(tb)
+    tb.installEventFilter(watch)
+    tb._pesi3d_watch = watch
+    _pesi3d_place_later(win)
+    return tb
+
+
+def _pesi3d_place_later(win):
+    """A toolbar the saved window layout does not know yet lands at the end
+    of the top row, squeezed behind the built-in ones. Once the window is
+    laid out, put new PESI3D toolbars on a row of their own under the
+    built-in ones — only the first time each one appears; after that the
+    user's own arrangement (saved with the window) wins. Every PESI3D
+    plugin carries this code; the first one to get here does it for all."""
+    if getattr(win, "_pesi3d_place_pending", False):
+        return
+    win._pesi3d_place_pending = True
+    from PySide6.QtCore import QSettings, Qt, QTimer
+    from PySide6.QtWidgets import QToolBar
+
+    def place():
+        win._pesi3d_place_pending = False
+        try:
+            st = QSettings()
+            key = "plugins/pesi3d/placed_toolbars"
+            placed = st.value(key) or []
+            if isinstance(placed, str):
+                placed = [placed]
+            placed = list(placed)
+            bars = [t for t in win.findChildren(QToolBar)
+                    if t.objectName().startswith("pesi3d_")]
+            new = [t for t in bars if t.objectName() not in placed]
+            if not new:
+                return
+            fresh = not placed            # no PESI3D row yet → open one
+            for i, t in enumerate(sorted(new, key=lambda t: t.objectName())):
+                shown = not t.isHidden()
+                win.removeToolBar(t)
+                if fresh and i == 0:
+                    win.addToolBarBreak(Qt.TopToolBarArea)
+                win.addToolBar(Qt.TopToolBarArea, t)
+                t.setVisible(shown)
+            st.setValue(key, placed + [t.objectName() for t in new])
+        except Exception:  # noqa: BLE001 — layout only, never break the app
+            pass
+
+    QTimer.singleShot(0, place)
+
 
 def setup(app) -> None:
     global _APP
@@ -2814,3 +3052,15 @@ def setup(app) -> None:
             later(show_points))
 
     app.add_context_menu(context)
+
+    _pesi3d_toolbar(app, TITLE, [
+        ("contours", "Terrain from Contours…",
+         "Build a terrain from the selected contour lines.",
+         lambda: show_contours(app.viewport, app.window)),
+        ("points", "Terrain from Points…",
+         "Build a terrain from the selected points.",
+         lambda: show_points(app.viewport, app.window)),
+        ("edit", "Edit Terrain…",
+         "Change the settings of the selected terrain.",
+         lambda: show_edit(app.viewport, app.window)),
+    ])
