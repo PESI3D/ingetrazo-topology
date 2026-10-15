@@ -1,17 +1,18 @@
 # Topology — How-to
 
 Terrain from contour lines or points for IngeTrazo.
-Version 1.0 · © 2026 Pesi (pesi3d.de) · GPL-3.0-or-later
+Version 1.2 · © 2026 Pesi (pesi3d.de) · GPL-3.0-or-later
 
 ---
 
 ## 1. Installation
 
-1. In IngeTrazo: **Extensions ▸ Open plugins folder** (Windows: `%APPDATA%\ingetrazo\plugins\`).
-2. Copy `topology_tool.py` into that folder.
-3. Restart IngeTrazo. The version is shown in the dialog title (`Topology 1.0 — …`).
+1. In IngeTrazo: **Extensions ▸ Open extensions folder** (Windows: `%APPDATA%\ingetrazo\plugins\`).
+2. Unzip `topology_tool_1.2.zip` there, so that the folder **`topology_tool`** sits directly in the plugins folder (it contains `__init__.py`). Installed through **Extensions ▸ Manage extensions…** this happens by itself.
+3. Delete an older **`topology_tool.py`** from the plugins folder (Topology 1.0 / 1.1 was a single file).
+4. Restart IngeTrazo. The version is shown in the dialog titles (`Topology 1.2 — …`).
 
-Menu: **Extensions ▸ Topology ▸** *Terrain from Contours… · Terrain from Points… · Edit Terrain…* — also on the right-click menu.
+Menu: **Extensions ▸ Topology ▸** *Terrain from Contours… · Terrain from Points… · Terrain from Plan… · Edit Terrain…* — and the **Topology** toolbar (one icon each). Contours and points are also on the right-click menu.
 
 ---
 
@@ -128,21 +129,64 @@ Click the green button again to switch the preview off.
 
 Select guide points (Tape Measure), vertices/edges or — with nothing selected — the document's survey points, then **Terrain from Points…**
 
+> **Survey point lists (CSV) from the surveyor:** read them with IngeTrazo's own import — **Terrain** panel ▸ **Survey points** ▸ **Import CSV…** (UTM, columns point, north, east, elevation, description). Then, with nothing selected, **Terrain from Points…** builds the terrain from exactly those points.
+
 * The surface goes exactly through every point (Delaunay TIN).
 * **Max. edge length on the rim** (only with *Outline*): cuts long rim triangles → concave outline. Rule of thumb: 2–3 × the typical point spacing shown in the dialog.
 * **Footprint**, **Skirt**, **Close the bottom**, **Soft edges** as above.
 
 ---
 
-## 6. Edit Terrain
+## 6. Terrain from Plan (spot heights from a PDF)
+
+Many site plans and survey plans carry the ground as **spot heights**: a point symbol with a height next to it. **Terrain from Plan…** reads them straight out of the plan's PDF — no points have to be drawn or typed.
+
+![Terrain from Plan](docs/terrain_from_plan.png)
+
+### What can be read
+
+| On the plan | Example | Used for the terrain? |
+|---|---|---|
+| Spot height with symbol (quartered circle, dot, cross …) | `+402,35` · `403.120` | **yes** — the point is the symbol, not the text |
+| Manhole cover | `KD 400,95` | **yes** (lies on the ground) |
+| Pipe / manhole invert | `KS 398,70` | no — starts unticked |
+| Floor level of a building | `±0,00 = +403,33` | no — starts unticked |
+| Slopes, Δh, dimensions | `2,5%` · `Δh 0.70` · `28,00` | ignored |
+
+The PDF has to be a **vector PDF** from CAD (ArchiCAD, AutoCAD, Vectorworks …). A scanned plan (only a picture) cannot be read.
+
+### Step by step
+
+1. **Extensions ▸ Topology ▸ Terrain from Plan…** (or the icon in the **Topology** toolbar) and choose the PDF. A multi-page PDF gets a **Sheet** selector.
+2. **Check the scale.** **Scale 1 :** shows the scale read from the plan, in green: *read from the plan: «1:200»*. In orange it was not found — type it in or use **Measure scale…**:
+   * click two points on the sheet whose real distance you know (clicks snap to line ends — a dimension line, a grid, a building edge),
+   * type the real distance in metres → the scale is worked out, shown in blue: *measured: 50.0 mm on paper = 10 m*.
+3. **Check the points.** Left: the sheet with every height found — **green** = used, **orange** = left out. Right: the table with **Point / text** (as written on the plan), **Easting / Northing** (metres on the plan), **Height**, **Code** and **Note**.
+   * Click a point on the sheet → its row is selected; select a row → the point is ringed in blue with its text.
+   * **Use** ticks or unticks a single height.
+   * **Codes** ticks or unticks a whole kind (e.g. tick *KS* if you want pipe inverts in, untick *KD* to leave covers out).
+   * **Show only points with a note** lists just the doubtful ones. Notes: *no point symbol found — text position used* (the height is placed where its text starts), *duplicate of row n* (the same height twice at one spot), *floor level — not the ground*, *height far off*.
+   * Wheel = zoom, drag = pan, double-click = whole sheet.
+4. **Placement:** the south-west corner of the heights goes to x 0 / y 0 and the lowest height to z 0 — the terrain is right at the origin. Tick **Keep real heights** for z = height above sea level.
+5. **Build Terrain ▸** opens *Terrain from Points* (section 5) with the live preview: footprint, skirt, closed bottom, soft edges — then **OK**. The terrain remembers the plan; **Edit Terrain…** works as usual.
+
+### Tips
+
+* Few heights give a rough terrain — a plan with heights only along the driveway gives a terrain only there. Combine with contour lines where you have them.
+* The scale is the one thing to check every time: a wrong scale makes the terrain too big or too small (the heights stay right).
+* If a height sits in the wrong place, untick it — or measure the scale again if *all* positions look stretched.
+
+---
+
+## 7. Edit Terrain
 
 Select a terrain made with this plugin ▸ right-click ▸ **Edit Terrain…** — source, heights, on/off states and all settings come back; OK rebuilds it in place (one undo step).
 
 ---
 
-## 7. Example files
+## 8. Example files
 
-The `examples/` folder has four scenes to try the plugin with (**File ▸ Open**). All of them start at the origin (0, 0, 0) and measure about 200 × 150 m.
+The `examples/` folder has four scenes to try the plugin with (**File ▸ Open**) — all of them start at the origin (0, 0, 0) and measure about 200 × 150 m — and one plan for **Terrain from Plan…**.
 
 | File | Contains | Try |
 |---|---|---|
@@ -150,3 +194,4 @@ The `examples/` folder has four scenes to try the plugin with (**File ▸ Open**
 | `contours_flat.igz` | Group *Contours_Flat*: the same lines, all at height 0 (like a flat 2D DWG) | **Altitude Editor** — *Number the lines* to give them heights |
 | `contours_messy.igz` | Group *Contours_Messy*: zigzagging lines plus small stray fragments | **Clean up lines** — Simplify, Smooth, Ignore lines shorter than |
 | `point_cloud.igz` | 860 survey points (guide points) | **Terrain from Points…** — Footprint, Max. edge length on the rim |
+| `site_plan_spot_heights_1-200_A3.pdf` | An invented site plan 1:200 with 27 spot heights (quartered circles and red survey dots), manholes (KD/KS) and a floor level | **Terrain from Plan…** — scale is read from the title block |

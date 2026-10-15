@@ -1,13 +1,13 @@
 # Topology — Gelände für IngeTrazo
 
-Erzeugt ein Gelände aus **Höhenlinien** oder aus **Punkten** — für Lagepläne, Landschafts- und Städtebau.
+Erzeugt ein Gelände aus **Höhenlinien**, aus **Punkten** oder aus den **Höhenkoten eines Lageplans (PDF)** — für Lagepläne, Landschafts- und Städtebau.
 
 [English → README.md](README.md)
 
 ## Installation
-1. In IngeTrazo: **Extensions ▸ Open plugins folder** (Windows: `%APPDATA%\ingetrazo\plugins\`, Linux: `~/.local/share/ingetrazo/plugins/`).
-2. `topology_tool.py` in diesen Ordner kopieren.
-3. IngeTrazo neu starten → **Extensions ▸ Topology ▸** *Terrain from Contours… · Terrain from Points… · Edit Terrain…* (auch im Rechtsklick-Menü).
+1. In IngeTrazo: **Extensions ▸ Open extensions folder** (Windows: `%APPDATA%\ingetrazo\plugins\`, Linux: `~/.local/share/ingetrazo/plugins/`).
+2. `topology_tool_1.2.zip` (aus dem [Release](../../releases/latest)) dort entpacken, sodass der Ordner `topology_tool` direkt im Plugins-Ordner liegt. Eine ältere `topology_tool.py` löschen (1.0/1.1 war eine einzelne Datei).
+3. IngeTrazo neu starten → **Extensions ▸ Topology ▸** *Terrain from Contours… · Terrain from Points… · Terrain from Plan… · Edit Terrain…* und die Werkzeugleiste **Topology**.
 
 Benötigt IngeTrazo ≥ 0.5 (Extension-API 2).
 
@@ -16,7 +16,8 @@ Benötigt IngeTrazo ≥ 0.5 (Extension-API 2).
 - **Smooth surface (radius)** — *Off (raw)* geht exakt durch jede Linie; ein Radius von 2–5 m nimmt die Knicke an den Linien heraus — ruhige, natürliche Fläche.
 - **Clean up lines** — **Simplify**, **Smooth** und **Ignore lines shorter than** für zackige oder unsaubere DWG-Höhenlinien. Nicht-destruktiv.
 - **Altitude Editor** — für Höhenlinien ohne Höhe (flaches 2D-DWG): Höhen in der Liste oder im Viewport setzen, viele Linien mit einem 2-Klick-Profil durchnummerieren, Linien ein-/ausschalten.
-- **Terrain from Points** — Delaunay-TIN exakt durch Vermessungspunkte, Hilfspunkte oder Vertices; lange Randdreiecke abschneiden.
+- **Terrain from Points** — Delaunay-TIN exakt durch Vermessungspunkte, Hilfspunkte oder Vertices; lange Randdreiecke abschneiden. Vermesser-CSV kommen über IngeTrazos eigenes **Terrain ▸ Survey points ▸ Import CSV…** herein.
+- **Terrain from Plan** — liest die **Höhenkoten eines Lageplans (PDF)** (+402,35 · 403.120 · KD …) samt Punktsymbol, den Maßstab aus dem Plankopf (oder **Measure scale** mit zwei Klicks), zeigt sie zum Prüfen im Plan und baut daraus das Gelände. Fußbodenhöhen und Kanalsohlen bleiben draußen.
 - **Footprint** — Outline · Rechteck auf die volle Box interpoliert · Rechteck innerhalb der Daten geschnitten.
 - **Quads statt Dreiecke** (Höhenlinien) — halb so viele Flächen, gleiche Form; praktisch für den Export.
 - **Skirt** mit geschlossenem Boden (wasserdichter Körper), Höhenlinien und flacher Höhenplan im Ergebnis, weiche Kanten.
@@ -28,11 +29,12 @@ Ausführliche Anleitung: [ANLEITUNG.md](ANLEITUNG.md)
 
 ## Beispieldateien
 Im Ordner [`examples/`](examples) liegen vier Szenen, alle ab Nullpunkt (0, 0, 0), ca. 200 × 150 m:
-`contours.igz` · `contours_flat.igz` (Altitude Editor) · `contours_messy.igz` (Clean up lines) · `point_cloud.igz`.
+`contours.igz` · `contours_flat.igz` (Altitude Editor) · `contours_messy.igz` (Clean up lines) · `point_cloud.igz` — dazu `site_plan_spot_heights_1-200_A3.pdf`, ein erfundener Lageplan für **Terrain from Plan**.
 
 ## Änderungen
+- **1.2** — **Terrain from Plan…**: Höhenkoten aus einem Lageplan (Vektor-PDF) — Höhentexte samt Punktsymbol, Maßstab aus dem Plan oder mit zwei Klicks gemessen, Planansicht mit grünen/orangen Punkten, Codes (KD, KS, Fußbodenhöhen), Doppelte entfernt; Gelände im Nullpunkt (oder mit echten Höhen). Topology ist jetzt ein Plugin-**Ordner** (`topology_tool/`, mit pypdf darin) — die alte `topology_tool.py` löschen.
 - **1.1** — eigene Werkzeugleiste **Topology** mit einem Icon je Befehl (Terrain from Contours… · Terrain from Points… · Edit Terrain…). Sie erscheint in einer eigenen Zeile unter den eingebauten Leisten und lässt sich wie diese verschieben, abdocken oder ausblenden (Rechtsklick auf eine Leiste). Icons im Stil von IngeTrazo, passend zum hellen/dunklen Theme.
 - **1.0** — erste Veröffentlichung.
 
 ## Lizenz
-GPL-3.0-or-later · © 2026 Pesi (pesi3d.de)
+GPL-3.0-or-later · © 2026 Pesi (pesi3d.de) · enthält [pypdf](https://github.com/py-pdf/pypdf) (BSD-3-Clause, `topology_tool/_vendor/pypdf/LICENSE`)

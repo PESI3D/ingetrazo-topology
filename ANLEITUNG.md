@@ -1,17 +1,18 @@
 # Topology — Anleitung
 
 Gelände aus Höhenlinien oder Punkten für IngeTrazo.
-Version 1.0 · © 2026 Pesi (pesi3d.de) · GPL-3.0-or-later
+Version 1.2 · © 2026 Pesi (pesi3d.de) · GPL-3.0-or-later
 
 ---
 
 ## 1. Installation
 
-1. In IngeTrazo: **Extensions ▸ Open plugins folder** (Windows: `%APPDATA%\ingetrazo\plugins\`).
-2. `topology_tool.py` dort hineinkopieren.
-3. IngeTrazo neu starten. Die Version steht im Dialogtitel (`Topology 1.0 — …`).
+1. In IngeTrazo: **Extensions ▸ Open extensions folder** (Windows: `%APPDATA%\ingetrazo\plugins\`).
+2. `topology_tool_1.2.zip` dort entpacken, sodass der Ordner **`topology_tool`** direkt im Plugins-Ordner liegt (darin `__init__.py`). Über **Extensions ▸ Manage extensions…** installiert, passiert das von selbst.
+3. Eine ältere **`topology_tool.py`** aus dem Plugins-Ordner löschen (Topology 1.0 / 1.1 war eine einzelne Datei).
+4. IngeTrazo neu starten. Die Version steht in den Dialogtiteln (`Topology 1.2 — …`).
 
-Menü: **Extensions ▸ Topology ▸** *Terrain from Contours… · Terrain from Points… · Edit Terrain…* — auch im Rechtsklick-Menü.
+Menü: **Extensions ▸ Topology ▸** *Terrain from Contours… · Terrain from Points… · Terrain from Plan… · Edit Terrain…* — dazu die Werkzeugleiste **Topology** (je ein Icon). Höhenlinien und Punkte auch im Rechtsklick-Menü.
 
 ---
 
@@ -128,21 +129,64 @@ Grünen Button erneut klicken → Vorschau aus.
 
 Hilfspunkte (Tape Measure), Vertices/Kanten oder — ohne Auswahl — die Vermessungspunkte des Dokuments wählen, dann **Terrain from Points…**
 
+> **Punktlisten (CSV) vom Vermesser:** mit IngeTrazos eigenem Import einlesen — Bereich **Terrain** ▸ **Survey points** ▸ **Import CSV…** (UTM, Spalten Punkt, Hochwert, Rechtswert, Höhe, Beschreibung). Danach baut **Terrain from Points…** ohne Auswahl das Gelände genau aus diesen Punkten.
+
 * Die Fläche geht exakt durch jeden Punkt (Delaunay-TIN).
 * **Max. edge length on the rim** (nur bei *Outline*): schneidet lange Randdreiecke ab → eingebuchteter Umriss. Faustregel: 2–3 × der im Dialog angezeigte typische Punktabstand.
 * **Footprint**, **Skirt**, **Close the bottom**, **Soft edges** wie oben.
 
 ---
 
-## 6. Gelände bearbeiten (Edit Terrain)
+## 6. Gelände aus einem Plan (Terrain from Plan — Höhenkoten aus PDF)
+
+Viele Lage- und Vermessungspläne zeigen das Gelände als **Höhenkoten**: ein Punktsymbol mit einer Höhe daneben. **Terrain from Plan…** liest sie direkt aus dem PDF des Plans — es muss kein Punkt gezeichnet oder abgetippt werden.
+
+![Terrain from Plan](docs/terrain_from_plan.png)
+
+### Was gelesen wird
+
+| Im Plan | Beispiel | Fürs Gelände? |
+|---|---|---|
+| Höhenkote mit Symbol (geviertelter Kreis, Punkt, Kreuz …) | `+402,35` · `403.120` | **ja** — der Punkt ist das Symbol, nicht der Text |
+| Kanaldeckel | `KD 400,95` | **ja** (liegt auf dem Gelände) |
+| Kanal-/Schachtsohle | `KS 398,70` | nein — von Anfang an abgehakt |
+| Fußbodenhöhe eines Gebäudes | `±0,00 = +403,33` | nein — von Anfang an abgehakt |
+| Gefälle, Δh, Maße | `2,5%` · `Δh 0.70` · `28,00` | wird ignoriert |
+
+Das PDF muss ein **Vektor-PDF** aus dem CAD sein (ArchiCAD, AutoCAD, Vectorworks …). Ein eingescannter Plan (nur Bild) kann nicht gelesen werden.
+
+### Schritt für Schritt
+
+1. **Extensions ▸ Topology ▸ Terrain from Plan…** (oder das Icon in der Werkzeugleiste **Topology**) und das PDF wählen. Bei mehrseitigen PDFs erscheint **Sheet** zur Blattauswahl.
+2. **Maßstab prüfen.** **Scale 1 :** zeigt den aus dem Plan gelesenen Maßstab, grün: *read from the plan: «1:200»*. Orange heißt: nicht gefunden — eintippen oder **Measure scale…**:
+   * zwei Punkte im Plan anklicken, deren echte Entfernung du kennst (der Klick rastet an Linienenden ein — Maßkette, Raster, Gebäudekante),
+   * die echte Entfernung in Metern eingeben → der Maßstab wird berechnet, blau: *measured: 50.0 mm on paper = 10 m*.
+3. **Punkte prüfen.** Links der Plan mit allen gefundenen Höhen — **grün** = verwendet, **orange** = weggelassen. Rechts die Tabelle mit **Point / text** (wie im Plan geschrieben), **Easting / Northing** (Meter im Plan), **Height**, **Code** und **Note**.
+   * Klick auf einen Punkt im Plan → seine Zeile wird markiert; Zeile wählen → der Punkt bekommt einen blauen Ring mit seinem Text.
+   * **Use**: einzelne Höhe an- oder abhaken.
+   * **Codes**: eine ganze Art an- oder abhaken (z. B. *KS* anhaken, wenn Sohlen mit sollen, *KD* abhaken, um Deckel wegzulassen).
+   * **Show only points with a note** zeigt nur die zweifelhaften. Hinweise: *no point symbol found — text position used* (die Höhe sitzt am Textanfang), *duplicate of row n* (dieselbe Höhe doppelt an einer Stelle), *floor level — not the ground*, *height far off*.
+   * Mausrad = Zoom, Ziehen = Verschieben, Doppelklick = ganzes Blatt.
+4. **Placement:** Die Südwest-Ecke der Höhen kommt auf x 0 / y 0, die tiefste Höhe auf z 0 — das Gelände liegt direkt im Nullpunkt. Mit **Keep real heights** bleibt z = Höhe über NN.
+5. **Build Terrain ▸** öffnet *Terrain from Points* (Abschnitt 5) mit Live Preview: Footprint, Skirt, geschlossener Boden, weiche Kanten — dann **OK**. Das Gelände merkt sich den Plan; **Edit Terrain…** funktioniert wie gewohnt.
+
+### Tipps
+
+* Wenige Höhen ergeben ein grobes Gelände — stehen nur entlang der Zufahrt Höhen im Plan, entsteht nur dort Gelände. Wo vorhanden, mit Höhenlinien kombinieren.
+* Den Maßstab jedes Mal prüfen: Ein falscher Maßstab macht das Gelände zu groß oder zu klein (die Höhen bleiben richtig).
+* Sitzt eine Höhe an der falschen Stelle, abhaken — wirken *alle* Positionen verzerrt, den Maßstab neu messen.
+
+---
+
+## 7. Gelände bearbeiten (Edit Terrain)
 
 Mit diesem Plugin erzeugtes Gelände wählen ▸ Rechtsklick ▸ **Edit Terrain…** — Quelle, Höhen, Ein/Aus-Zustände und alle Einstellungen kommen zurück; OK baut es an derselben Stelle neu (ein Undo-Schritt).
 
 ---
 
-## 7. Beispieldateien
+## 8. Beispieldateien
 
-Im Ordner `examples/` liegen vier Szenen zum Ausprobieren (**File ▸ Open**). Alle beginnen im Nullpunkt (0, 0, 0) und sind etwa 200 × 150 m groß.
+Im Ordner `examples/` liegen vier Szenen zum Ausprobieren (**File ▸ Open**) — alle beginnen im Nullpunkt (0, 0, 0) und sind etwa 200 × 150 m groß — und ein Plan für **Terrain from Plan…**.
 
 | Datei | Inhalt | Ausprobieren |
 |---|---|---|
@@ -150,3 +194,4 @@ Im Ordner `examples/` liegen vier Szenen zum Ausprobieren (**File ▸ Open**). A
 | `contours_flat.igz` | Gruppe *Contours_Flat*: dieselben Linien, alle auf Höhe 0 (wie ein flaches 2D-DWG) | **Altitude Editor** — mit *Number the lines* Höhen vergeben |
 | `contours_messy.igz` | Gruppe *Contours_Messy*: Zickzack-Linien und kleine Fehlstücke | **Clean up lines** — Simplify, Smooth, Ignore lines shorter than |
 | `point_cloud.igz` | 860 Vermessungspunkte (Hilfspunkte) | **Terrain from Points…** — Footprint, Max. edge length on the rim |
+| `site_plan_spot_heights_1-200_A3.pdf` | Erfundener Lageplan 1:200 mit 27 Höhenkoten (geviertelte Kreise und rote Messpunkte), Schächten (KD/KS) und einer Fußbodenhöhe | **Terrain from Plan…** — der Maßstab wird aus dem Plankopf gelesen |
