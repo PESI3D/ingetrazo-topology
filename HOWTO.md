@@ -8,7 +8,7 @@ Version 1.2 · © 2026 Pesi (pesi3d.de) · GPL-3.0-or-later
 ## 1. Installation
 
 1. In IngeTrazo: **Extensions ▸ Open extensions folder** (Windows: `%APPDATA%\ingetrazo\plugins\`).
-2. Unzip `topology_tool_1.2.zip` there, so that the folder **`topology_tool`** sits directly in the plugins folder (it contains `__init__.py`). Installed through **Extensions ▸ Manage extensions…** this happens by itself.
+2. Unzip `topology_tool_1.2.1.zip` there, so that the folder **`topology_tool`** sits directly in the plugins folder (it contains `__init__.py`). Installed through **Extensions ▸ Manage extensions…** this happens by itself.
 3. Delete an older **`topology_tool.py`** from the plugins folder (Topology 1.0 / 1.1 was a single file).
 4. Restart IngeTrazo. The version is shown in the dialog titles (`Topology 1.2 — …`).
 

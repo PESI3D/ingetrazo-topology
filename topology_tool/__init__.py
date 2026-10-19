@@ -38,7 +38,7 @@ import time
 KEY = "topology_tool"
 LEGACY_KEYS = ("terrain_tool", "topoform")   # terrains made before the renames
 TITLE = "Topology"
-VERSION = "1.2"
+VERSION = "1.2.1"
 SETTINGS_KEY = "plugins/topology_tool/params"
 LEGACY_SETTINGS_KEY = "plugins/topoform/params"
 MAX_CELLS_SIDE = 2000          # finer grids bring no detail, only memory

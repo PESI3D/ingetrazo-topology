@@ -32,6 +32,12 @@ def _pypdf():
     if "pypdf" not in sys.modules and _VENDOR not in sys.path:
         sys.path.insert(0, _VENDOR)
     import pypdf  # noqa: F401
+    # pypdf reports what it repairs on its own («incorrect startxref
+    # pointer», «parsing for Object Streams») as warnings — on every page
+    # of many CAD plots. They say nothing to the user and filled
+    # IngeTrazo's log; real errors still come through.
+    import logging
+    logging.getLogger("pypdf").setLevel(logging.ERROR)
     return pypdf
 
 
