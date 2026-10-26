@@ -38,7 +38,7 @@ import time
 KEY = "topology_tool"
 LEGACY_KEYS = ("terrain_tool", "topoform")   # terrains made before the renames
 TITLE = "Topology"
-VERSION = "1.2.1"
+VERSION = "1.2.2"
 SETTINGS_KEY = "plugins/topology_tool/params"
 LEGACY_SETTINGS_KEY = "plugins/topoform/params"
 MAX_CELLS_SIDE = 2000          # finer grids bring no detail, only memory
@@ -1070,6 +1070,41 @@ def trim_long_edges(V, T, max_len):
                             "increase it or set it to 0.")
 
 
+def peel_slivers(V, T, rel=0.02, max_nz=0.5):
+    """Peel needle triangles off the rim: the corner opposite a rim edge
+    lies almost ON that edge (closer than ``rel`` × the typical point
+    spacing) and the face is steep (normal z < ``max_nz``). Points lying
+    nearly in a line on the outline make such slivers; their steep, twisted
+    faces show as creases. Long flat rim triangles stay."""
+    import numpy as np
+    if len(T) == 0:
+        return T
+    used = np.unique(T.ravel())
+    ext = V[used, :2].max(0) - V[used, :2].min(0)
+    spacing = math.sqrt(max(float(ext[0] * ext[1]), 1e-12) / max(len(used), 1))
+    tol = rel * spacing
+    T = T.copy()
+    for _ in range(50):
+        m = len(T)
+        e = np.concatenate([T[:, [0, 1]], T[:, [1, 2]], T[:, [2, 0]]])
+        opp = np.concatenate([T[:, 2], T[:, 0], T[:, 1]])
+        k = np.sort(e, 1)
+        _u, inv, cnt = np.unique(k, axis=0, return_inverse=True, return_counts=True)
+        rim = cnt[inv.ravel()] == 1
+        a, b, c = V[e[:, 0], :2], V[e[:, 1], :2], V[opp, :2]
+        d = b - a
+        L = np.maximum(np.hypot(*d.T), 1e-300)
+        dist = np.abs(d[:, 0] * (c[:, 1] - a[:, 1]) - d[:, 1] * (c[:, 0] - a[:, 0])) / L
+        thin = rim & (dist < tol)
+        n = np.cross(V[T[:, 1]] - V[T[:, 0]], V[T[:, 2]] - V[T[:, 0]])
+        nz = np.abs(n[:, 2]) / np.maximum(np.linalg.norm(n, axis=1), 1e-300)
+        bad = (thin[:m] | thin[m:2 * m] | thin[2 * m:]) & (nz < max_nz)
+        if not bad.any() or bad.all():
+            return T
+        T = T[~bad]
+    return T
+
+
 def estimate_point_triangles(n_points):
     """A Delaunay TIN of n points has ≈ 2n triangles."""
     return max(0, 2 * int(n_points) - 2)
@@ -1091,6 +1126,7 @@ def terrain_from_points(points, p):
     T = delaunay(V[:, :2])
     if len(T) == 0:
         raise TopoError("The points are collinear — no surface.")
+    T = peel_slivers(V, T)
     if mode == "hull":
         T = trim_long_edges(V, T, p["max_edge"])
     elif mode == "cut":
