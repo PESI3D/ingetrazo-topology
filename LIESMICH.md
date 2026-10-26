@@ -6,7 +6,7 @@ Erzeugt ein Gelände aus **Höhenlinien**, aus **Punkten** oder aus den **Höhen
 
 ## Installation
 1. In IngeTrazo: **Extensions ▸ Open extensions folder** (Windows: `%APPDATA%\ingetrazo\plugins\`, Linux: `~/.local/share/ingetrazo/plugins/`).
-2. `topology_tool_1.2.1.zip` (aus dem [Release](../../releases/latest)) dort entpacken, sodass der Ordner `topology_tool` direkt im Plugins-Ordner liegt. Eine ältere `topology_tool.py` löschen (1.0/1.1 war eine einzelne Datei).
+2. `topology_tool_1.2.2.zip` (aus dem [Release](../../releases/latest)) dort entpacken, sodass der Ordner `topology_tool` direkt im Plugins-Ordner liegt. Eine ältere `topology_tool.py` löschen (1.0/1.1 war eine einzelne Datei).
 3. IngeTrazo neu starten → **Extensions ▸ Topology ▸** *Terrain from Contours… · Terrain from Points… · Terrain from Plan… · Edit Terrain…* und die Werkzeugleiste **Topology**.
 
 Benötigt IngeTrazo ≥ 0.5.6 (Extension-API 2) · getestet mit IngeTrazo 0.5.8.
@@ -32,6 +32,7 @@ Im Ordner [`examples/`](examples) liegen vier Szenen, alle ab Nullpunkt (0, 0, 0
 `contours.igz` · `contours_flat.igz` (Altitude Editor) · `contours_messy.igz` (Clean up lines) · `point_cloud.igz` — dazu `site_plan_spot_heights_1-200_A3.pdf`, ein erfundener Lageplan für **Terrain from Plan**.
 
 ## Änderungen
+- **1.2.2** — sauberere Ränder bei **Terrain from Points**: nadeldünne, steile Dreiecke am Rand (Punkte fast in einer Linie auf dem Umriss oder fast auf dem Rechteck) werden entfernt — keine Zacken oder Knicke mehr an der Kante; getestet mit IngeTrazo 0.5.8 und 0.5.10.
 - **1.2.1** — der PDF-Leser füllt IngeTrazos Protokoll nicht mehr mit dem, was er in einem PDF selbst repariert («incorrect startxref pointer» …); getestet mit IngeTrazo 0.5.8.
 - **1.2** — **Terrain from Plan…**: Höhenkoten aus einem Lageplan (Vektor-PDF) — Höhentexte samt Punktsymbol, Maßstab aus dem Plan oder mit zwei Klicks gemessen, Planansicht mit grünen/orangen Punkten, Codes (KD, KS, Fußbodenhöhen), Doppelte entfernt; Gelände im Nullpunkt (oder mit echten Höhen). Topology ist jetzt ein Plugin-**Ordner** (`topology_tool/`, mit pypdf darin) — die alte `topology_tool.py` löschen.
 - **1.1** — eigene Werkzeugleiste **Topology** mit einem Icon je Befehl (Terrain from Contours… · Terrain from Points… · Edit Terrain…). Sie erscheint in einer eigenen Zeile unter den eingebauten Leisten und lässt sich wie diese verschieben, abdocken oder ausblenden (Rechtsklick auf eine Leiste). Icons im Stil von IngeTrazo, passend zum hellen/dunklen Theme.
