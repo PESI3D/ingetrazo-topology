@@ -27,7 +27,9 @@ MM = 1.0 / PT_TO_MM                  # page points per millimetre
 # codes whose points are NOT on the ground (start unticked)
 NOT_GROUND_CODES = ("KS", "SO", "SOHLE", "OK", "OKM", "OKW", "UK", "FFB",
                     "OKFF", "OKRF", "OKRD", "FOK", "RFB", "Floor level",
-                    "FH", "TH", "DA", "SH")
+                    "FH", "TH", "DA", "SH",
+                    # US survey plans
+                    "FF", "FFE", "FFL", "TW", "TOW", "INV", "IE", "RIM")
 SPOT = "Spot height"
 FLOOR = "Floor level"
 
@@ -37,6 +39,18 @@ _HEIGHT = re.compile(
     r"(?P<sign>[+±\-−])?\s*(?P<num>" + _NUM + r")\s*"
     r"(?:m\s*(?:ü\.?\s*)?(?:NN|NHN)?|NN|NHN)?$")
 _FLOOR = re.compile(r"=\s*(?P<sign>[+±\-−])?\s*(?P<num>" + _NUM + r")\s*$")
+# feet and inches (US plans): «512'-6"», «EL. 512'-6 1/2"», «+10'-0"»
+_FT = r"(?:'|’|′)"
+_IN = r"(?:\"|”|″|'')"
+_FTIN = re.compile(
+    r"^(?:(?P<pre>[A-Za-z]{1,6})\s*\.?\s*:?\s*)?(?P<sign>[+±\-−])?\s*"
+    r"(?P<ft>\d{1,5})\s*" + _FT + r"\s*-?\s*(?:(?P<inch>\d{1,2})(?:\s*[- ]\s*"
+    r"(?P<fn>\d{1,2})\s*/\s*(?P<fd>\d{1,2}))?|(?P<on>\d{1,2})\s*/\s*"
+    r"(?P<od>\d{1,2}))?\s*" + _IN + r"?$")
+# decimal feet with a mark: «512.45'», «512.45 ft»
+_DECFT = re.compile(
+    r"^(?:(?P<pre>[A-Za-z]{1,6})\s*\.?\s*:?\s*)?(?P<sign>[+±\-−])?\s*"
+    r"(?P<num>\d{1,5}(?:[.,]\d{1,3})?)\s*(?:" + _FT + r"|ft\.?)$", re.I)
 _SKIP = re.compile(r"%|Δ|∆|\bdh\b|^R\s*\d|^[Øø⌀]|\bx\b", re.IGNORECASE)
 
 
@@ -234,7 +248,7 @@ def parse_label(text):
         return v, FLOOR
     m = _HEIGHT.match(t)
     if not m:
-        return None
+        return _parse_feet(t)
     v = _num(m.group("num"))
     if m.group("sign") == "-":
         v = -v
@@ -243,6 +257,45 @@ def parse_label(text):
         return None
     signed = bool(m.group("sign")) or bool(pre)
     return v, (pre or SPOT), signed
+
+
+def _parse_feet(t):
+    """A height in feet («512'-6"», «EL. 512.45'») → ``(feet, code, signed)``
+    or None."""
+    m = _FTIN.match(t) or _DECFT.match(t)
+    if not m:
+        return None
+    d = m.groupdict()
+    if d.get("ft") is not None:
+        v = int(d["ft"])
+        inch = 0.0
+        if d.get("inch"):
+            inch = int(d["inch"])
+            if d.get("fn") and d.get("fd"):
+                inch += int(d["fn"]) / max(1, int(d["fd"]))
+        elif d.get("on") and d.get("od"):
+            inch = int(d["on"]) / max(1, int(d["od"]))
+        v += inch / 12.0
+    else:
+        v = _num(d["num"])
+    if d.get("sign") in ("-", "−"):
+        v = -v
+    pre = (d.get("pre") or "").upper().rstrip(".")
+    if pre in ("EL", "ELEV", "SPOT"):
+        pre = ""                            # «EL.» only says «elevation»
+    return v, (pre or SPOT), True
+
+
+def feet_marks(texts):
+    """How many texts are written in feet / inches («512'-6"», «1" = 20'»)."""
+    n = 0
+    for t in texts:
+        s = (t.get("text") if isinstance(t, dict) else getattr(t, "text", "")) \
+            or ""
+        if _FTIN.match(s.strip()) or _DECFT.match(s.strip()) \
+                or pv.imperial_scale(s):
+            n += 1
+    return n
 
 
 def _seg_dist(px, py, ax, ay, bx, by):
@@ -333,5 +386,10 @@ def read_pdf(path, page_index=0):
     name, scale, ptexts = pv.page_texts(path, page_index, reader)
     info["symbols"] = len(symbols)
     info["name"] = name
+    # the plan's unit: feet when its scale or its heights are imperial
+    imp = feet_marks(texts) + feet_marks(ptexts)
+    met = sum(1 for t in ptexts if pv._SCALE_ANY.search(t.text or ""))
+    info["unit"] = ("imperial" if imp >= 2 and imp > met else
+                    "metric" if recs else None)
     return {"recs": recs, "scale": scale, "pages": n, "vec": vec,
             "texts": ptexts, "info": info}

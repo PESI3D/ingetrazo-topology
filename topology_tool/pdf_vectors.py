@@ -178,6 +178,50 @@ def page_info(path) -> list:
 _SCALE_LINE = re.compile(r"^(.*?)[\s\t]*\bM?\s*1\s*:\s*(\d{1,5})\s*$")
 _SCALE_ANY = re.compile(r"\b1\s*:\s*(\d{1,5})\b")
 
+# Imperial plan scales: architectural «1/4" = 1'-0"», «1 1/2" = 1'-0"»,
+# engineering «1" = 20'» → the same 1:N (1/4" = 1'-0" is 1:48).
+_IN_MARK = r"(?:\"|”|″|''|in\.?)"
+_FT_MARK = r"(?:'|’|′|ft\.?)"
+_IMP_SCALE = re.compile(
+    r"(\d{1,2}\s*[- ]\s*\d{1,2}\s*/\s*\d{1,2}|\d{1,2}\s*/\s*\d{1,3}|\d{1,2})"
+    r"\s*" + _IN_MARK + r"\s*=\s*(\d{1,4})\s*" + _FT_MARK
+    + r"(?:\s*-?\s*0\s*" + _IN_MARK + r"?)?", re.I)
+
+
+def _inch_value(txt):
+    """«1/4», «1 1/2», «1-1/2», «3» → inches."""
+    txt = txt.strip()
+    m = re.match(r"^(\d+)\s*[- ]\s*(\d+)\s*/\s*(\d+)$", txt)
+    if m:
+        return int(m.group(1)) + int(m.group(2)) / max(1, int(m.group(3)))
+    m = re.match(r"^(\d+)\s*/\s*(\d+)$", txt)
+    if m:
+        return int(m.group(1)) / max(1, int(m.group(2)))
+    return float(txt)
+
+
+def imperial_scale(text):
+    """1:N of the first imperial scale in ``text`` — or None."""
+    for m in _IMP_SCALE.finditer(text or ""):
+        try:
+            inch = _inch_value(m.group(1))
+            n = int(m.group(2)) * 12.0 / inch if inch > 0 else 0
+        except (ValueError, ZeroDivisionError):
+            continue
+        if 1.0 <= n <= 20000:
+            return int(round(n))
+    return None
+
+
+def _scale_in(text):
+    """1:N of a metric «1:100» or an imperial «1/4" = 1'-0"» scale."""
+    m = _SCALE_ANY.search(text or "")
+    if m and int(m.group(1)) > 1:
+        return int(m.group(1))
+    return imperial_scale(text)
+
+
+
 
 @dataclass
 class PageText:
@@ -198,8 +242,18 @@ def _title_from(text):
             name = " ".join(mt.group(1).split())
             scale = int(mt.group(2))
             break
+        mi = _IMP_SCALE.search(line)
+        if mi and imperial_scale(line):
+            head = re.sub(r"(?i)\bscale\s*:?\s*$", "",
+                          line[:mi.start()]).strip(" :-–")
+            if len(head) >= 3:
+                name = " ".join(head.split())
+                scale = imperial_scale(line)
+                break
     if scale is None:
         found = [int(v) for v in _SCALE_ANY.findall(text) if int(v) > 1]
+        found += [n for n in (imperial_scale(ln) for ln in text.splitlines())
+                  if n]
         if found:
             scale = max(set(found), key=found.count)
     return name, scale
@@ -231,7 +285,8 @@ def page_texts(path, page_index: int, reader=None) -> tuple:
         k = math.hypot(a, b) or 1.0
         items.append(PageText(m[4], m[5], abs(float(size or 0)) * k,
                               math.degrees(math.atan2(b, a)), t,
-                              bool(_SCALE_ANY.search(t))))
+                              bool(_SCALE_ANY.search(t)
+                                   or imperial_scale(t))))
 
     try:
         text = page.extract_text(visitor_text=visit) or ""
