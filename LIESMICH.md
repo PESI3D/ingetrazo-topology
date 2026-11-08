@@ -9,7 +9,7 @@ Erzeugt ein Gelände aus **Höhenlinien**, aus **Punkten** oder aus den **Höhen
 2. `topology_tool_1.2.2.zip` (aus dem [Release](../../releases/latest)) dort entpacken, sodass der Ordner `topology_tool` direkt im Plugins-Ordner liegt. Eine ältere `topology_tool.py` löschen (1.0/1.1 war eine einzelne Datei).
 3. IngeTrazo neu starten → **Extensions ▸ Topology ▸** *Terrain from Contours… · Terrain from Points… · Terrain from Plan… · Edit Terrain…* und die Werkzeugleiste **Topology**.
 
-Benötigt IngeTrazo ≥ 0.5.6 (Extension-API 2) · getestet mit IngeTrazo 0.5.8.
+Benötigt IngeTrazo ≥ 0.5.6 (Extension-API 2) · getestet mit IngeTrazo 0.6.0.
 
 ## Funktionen
 - **Terrain from Contours** — regelmäßiges Raster mit weicher Interpolation zwischen den Linien (keine Terrassen). Kuppen und Senken rund oder flach (**Summits & pits**).
@@ -31,7 +31,17 @@ Ausführliche Anleitung: [ANLEITUNG.md](ANLEITUNG.md)
 Im Ordner [`examples/`](examples) liegen vier Szenen, alle ab Nullpunkt (0, 0, 0), ca. 200 × 150 m:
 `contours.igz` · `contours_flat.igz` (Altitude Editor) · `contours_messy.igz` (Clean up lines) · `point_cloud.igz` — dazu `site_plan_spot_heights_1-200_A3.pdf`, ein erfundener Lageplan für **Terrain from Plan**.
 
+## Einheiten
+Der Dialog arbeitet in den **Einheiten des geöffneten Dokuments** — eingestellt in IngeTrazo unter **Fenster ▸ Einheiten…** (Strg+U) oder **Fenster ▸ Einstellungen… ▸ Einheiten**:
+- Längenfelder zeigen und lesen die Längeneinheit und -form des Dokuments: m, cm, mm, in, ft, Fuß-Zoll (`9'10"`) oder Fuß-Zoll mit Brüchen (`9'10 1/8"`).
+- Eingabe mit oder ohne Einheit: `25`, `2,5 cm`, `1'2"`, `3/4"`. Eine Zahl ohne Einheit gilt in der Dokumenteinheit (im Fuß-Zoll-Dokument: Zoll); ein Wert in einer anderen Einheit wird umgerechnet.
+- Winkel stehen in der Winkeleinheit des Dokuments (Grad, Radiant oder Gon), Flächen in seiner Flächeneinheit; Prozentfelder und Anzahlen haben keine Einheit. Das Dezimaltrennzeichen folgt dem Dokument — beim Tippen gehen `.` und `,`.
+- Ein Wechsel der Einheiten ändert nur Anzeige und Eingabe — das Modell bleibt exakt gleich. Nach dem Ändern den Dialog neu öffnen.
+- In IngeTrazo-Versionen vor 0.5.8 sind die Felder einfache Zahlen in Metern.
+- **Aus einem Plan gelesene Höhen bleiben in der Einheit des Plans** und werden darin gerechnet: ein metrischer Plan (`1:200`, `+402,35`) wird in Metern gelesen, ein Zoll-Plan (`1" = 20'`, `512'-6"`, `513.25'`) in Fuß. **Heights in** bleibt auf *Automatic (from the plan)* — m, cm, mm, ft und in nur für den Notfall (Höhen in einer anderen Einheit geschrieben, z. B. cm). Ist der Plan in einem anderen System als das Dokument, stellt ein Häkchen daneben (vorgewählt) das Dokument beim Erzeugen des Geländes auf die Einheit des Plans um. Details: [Anleitung](ANLEITUNG.md#9-einheiten).
+
 ## Änderungen
+- **1.3** — **Dokumenteinheiten**: alle Felder, der Höhen-Editor und die Vermessungstabelle zeigen und lesen die Einheiten aus Einstellungen ▸ Einheiten; **Terrain from Plan…**: die Einheit des Plans ist die Arbeitseinheit — neu **Heights in** (*Automatic (from the plan)*; m, cm, mm, ft, in zum Umrechnen), **Zoll-Pläne** (Maßstäbe `1" = 20'`, Höhen `512'-6"` / `513.25'`, US-Codes FF, TW, INV abgehakt) und ein Häkchen, das das Dokument auf die Einheit des Plans umstellt; *Measure scale…* nimmt die Strecke in jeder Einheit. Getestet mit IngeTrazo 0.6.0.
 - **1.2.2** — sauberere Ränder bei **Terrain from Points**: nadeldünne, steile Dreiecke am Rand (Punkte fast in einer Linie auf dem Umriss oder fast auf dem Rechteck) werden entfernt — keine Zacken oder Knicke mehr an der Kante; getestet mit IngeTrazo 0.5.8 und 0.5.10.
 - **1.2.1** — der PDF-Leser füllt IngeTrazos Protokoll nicht mehr mit dem, was er in einem PDF selbst repariert («incorrect startxref pointer» …); getestet mit IngeTrazo 0.5.8.
 - **1.2** — **Terrain from Plan…**: Höhenkoten aus einem Lageplan (Vektor-PDF) — Höhentexte samt Punktsymbol, Maßstab aus dem Plan oder mit zwei Klicks gemessen, Planansicht mit grünen/orangen Punkten, Codes (KD, KS, Fußbodenhöhen), Doppelte entfernt; Gelände im Nullpunkt (oder mit echten Höhen). Topology ist jetzt ein Plugin-**Ordner** (`topology_tool/`, mit pypdf darin) — die alte `topology_tool.py` löschen.

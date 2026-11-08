@@ -1,16 +1,16 @@
 # Topology — Anleitung
 
 Gelände aus Höhenlinien oder Punkten für IngeTrazo.
-Version 1.2.2 · © 2026 Pesi (pesi3d.de) · GPL-3.0-or-later
+Version 1.3 · © 2026 Pesi (pesi3d.de) · GPL-3.0-or-later
 
 ---
 
 ## 1. Installation
 
 1. In IngeTrazo: **Extensions ▸ Open extensions folder** (Windows: `%APPDATA%\ingetrazo\plugins\`).
-2. `topology_tool_1.2.2.zip` dort entpacken, sodass der Ordner **`topology_tool`** direkt im Plugins-Ordner liegt (darin `__init__.py`). Über **Extensions ▸ Manage extensions…** installiert, passiert das von selbst.
+2. `topology_tool_1.3.zip` dort entpacken, sodass der Ordner **`topology_tool`** direkt im Plugins-Ordner liegt (darin `__init__.py`). Über **Extensions ▸ Manage extensions…** installiert, passiert das von selbst.
 3. Eine ältere **`topology_tool.py`** aus dem Plugins-Ordner löschen (Topology 1.0 / 1.1 war eine einzelne Datei).
-4. IngeTrazo neu starten. Die Version steht in den Dialogtiteln (`Topology 1.2.2 — …`).
+4. IngeTrazo neu starten. Die Version steht in den Dialogtiteln (`Topology 1.3 — …`).
 
 Menü: **Extensions ▸ Topology ▸** *Terrain from Contours… · Terrain from Points… · Terrain from Plan… · Edit Terrain…* — dazu die Werkzeugleiste **Topology** (je ein Icon). Höhenlinien und Punkte auch im Rechtsklick-Menü.
 
@@ -148,6 +148,8 @@ Viele Lage- und Vermessungspläne zeigen das Gelände als **Höhenkoten**: ein P
 | Im Plan | Beispiel | Fürs Gelände? |
 |---|---|---|
 | Höhenkote mit Symbol (geviertelter Kreis, Punkt, Kreuz …) | `+402,35` · `403.120` | **ja** — der Punkt ist das Symbol, nicht der Text |
+| Höhenkote in Fuß (US-Pläne) | `512'-6"` · `EL. 513.25'` | **ja** |
+| Fußboden, Mauerkrone, Sohle (US-Pläne) | `FF 513.00'` · `TW` · `INV` | nein — von Anfang an abgehakt |
 | Kanaldeckel | `KD 400,95` | **ja** (liegt auf dem Gelände) |
 | Kanal-/Schachtsohle | `KS 398,70` | nein — von Anfang an abgehakt |
 | Fußbodenhöhe eines Gebäudes | `±0,00 = +403,33` | nein — von Anfang an abgehakt |
@@ -158,15 +160,16 @@ Das PDF muss ein **Vektor-PDF** aus dem CAD sein (ArchiCAD, AutoCAD, Vectorworks
 ### Schritt für Schritt
 
 1. **Extensions ▸ Topology ▸ Terrain from Plan…** (oder das Icon in der Werkzeugleiste **Topology**) und das PDF wählen. Bei mehrseitigen PDFs erscheint **Sheet** zur Blattauswahl.
-2. **Maßstab prüfen.** **Scale 1 :** zeigt den aus dem Plan gelesenen Maßstab, grün: *read from the plan: «1:200»*. Orange heißt: nicht gefunden — eintippen oder **Measure scale…**:
+2. **Maßstab prüfen.** **Scale 1 :** zeigt den aus dem Plan gelesenen Maßstab, grün: *read from the plan: «1:200»* — bei einem Zoll-Plan *«1:240» (1" = 20')*. Orange heißt: nicht gefunden — eintippen oder **Measure scale…**:
    * zwei Punkte im Plan anklicken, deren echte Entfernung du kennst (der Klick rastet an Linienenden ein — Maßkette, Raster, Gebäudekante),
-   * die echte Entfernung in Metern eingeben → der Maßstab wird berechnet, blau: *measured: 50.0 mm on paper = 10 m*.
-3. **Punkte prüfen.** Links der Plan mit allen gefundenen Höhen — **grün** = verwendet, **orange** = weggelassen. Rechts die Tabelle mit **Point / text** (wie im Plan geschrieben), **Easting / Northing** (Meter im Plan), **Height**, **Code** und **Note**.
+   * die echte Entfernung eingeben (in der Dokumenteinheit oder mit Einheit: `10 m`, `32'`) → der Maßstab wird berechnet, blau: *measured: 50.0 mm on paper = 10 m*.
+3. **Punkte prüfen.** Links der Plan mit allen gefundenen Höhen — **grün** = verwendet, **orange** = weggelassen. Rechts die Tabelle mit **Point / text** (wie im Plan geschrieben), **Easting / Northing** (im Plan), **Height** — alles in den Dokumenteinheiten —, **Code** und **Note**.
    * Klick auf einen Punkt im Plan → seine Zeile wird markiert; Zeile wählen → der Punkt bekommt einen blauen Ring mit seinem Text.
    * **Use**: einzelne Höhe an- oder abhaken.
    * **Codes**: eine ganze Art an- oder abhaken (z. B. *KS* anhaken, wenn Sohlen mit sollen, *KD* abhaken, um Deckel wegzulassen).
    * **Show only points with a note** zeigt nur die zweifelhaften. Hinweise: *no point symbol found — text position used* (die Höhe sitzt am Textanfang), *duplicate of row n* (dieselbe Höhe doppelt an einer Stelle), *floor level — not the ground*, *height far off*.
    * Mausrad = Zoom, Ziehen = Verschieben, Doppelklick = ganzes Blatt.
+   * **Heights in** — siehe [Einheiten](#9-einheiten): *Automatic (from the plan)* liest die Einheit des Plans selbst.
 4. **Placement:** Die Südwest-Ecke der Höhen kommt auf x 0 / y 0, die tiefste Höhe auf z 0 — das Gelände liegt direkt im Nullpunkt. Mit **Keep real heights** bleibt z = Höhe über NN.
 5. **Build Terrain ▸** öffnet *Terrain from Points* (Abschnitt 5) mit Live Preview: Footprint, Skirt, geschlossener Boden, weiche Kanten — dann **OK**. Das Gelände merkt sich den Plan; **Edit Terrain…** funktioniert wie gewohnt.
 
@@ -195,3 +198,19 @@ Im Ordner `examples/` liegen vier Szenen zum Ausprobieren (**File ▸ Open**) �
 | `contours_messy.igz` | Gruppe *Contours_Messy*: Zickzack-Linien und kleine Fehlstücke | **Clean up lines** — Simplify, Smooth, Ignore lines shorter than |
 | `point_cloud.igz` | 860 Vermessungspunkte (Hilfspunkte) | **Terrain from Points…** — Footprint, Max. edge length on the rim |
 | `site_plan_spot_heights_1-200_A3.pdf` | Erfundener Lageplan 1:200 mit 27 Höhenkoten (geviertelte Kreise und rote Messpunkte), Schächten (KD/KS) und einer Fußbodenhöhe | **Terrain from Plan…** — der Maßstab wird aus dem Plankopf gelesen |
+
+---
+
+## 9. Einheiten
+
+Alle Dialoge arbeiten in den **Einheiten des geöffneten Dokuments** — eingestellt in IngeTrazo unter **Fenster ▸ Einheiten…** (Strg+U) oder **Fenster ▸ Einstellungen… ▸ Einheiten**:
+
+* Längen und Höhen (Radius, Abstände, Höhen, die Tabelle von *Terrain from Plan*) werden in der Längeneinheit und -form des Dokuments gezeigt und eingegeben: m, cm, mm, in, ft, Fuß-Zoll (`9'10"`) oder Fuß-Zoll mit Brüchen (`9'10 1/8"`).
+* Eingabe mit oder ohne Einheit: `25`, `2,5 cm`, `1'2"`. Eine Zahl ohne Einheit gilt in der Dokumenteinheit; eine andere Einheit wird umgerechnet.
+* Ein Wechsel der Einheiten ändert nur die Anzeige — das Gelände bleibt exakt gleich. Danach den Dialog neu öffnen.
+
+**Aus einem Plan gelesene Höhen bleiben in der Einheit des Plans und werden darin gerechnet.** Ein metrischer Plan (`1:200`, `+402,35`) wird in Metern gelesen, ein Zoll-Plan (`1" = 20'`, `512'-6"`, `513.25'`) in Fuß:
+
+* **Heights in** bleibt auf *Automatic (from the plan)*. m, cm, mm, ft und in nur für den Notfall — ein Plan, dessen Höhen in einer anderen Einheit geschrieben sind (z. B. Höhen in cm).
+* Ist der Plan in einem anderen System als das Dokument, stellt ein Häkchen daneben (vorgewählt) das Dokument beim Erzeugen des Geländes auf die Einheit des Plans um: ft-in bei Zoll-Plänen, Meter bei metrischen.
+
